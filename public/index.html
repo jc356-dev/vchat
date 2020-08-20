@@ -9,14 +9,28 @@
             href="https://fonts.googleapis.com/css?family=Montserrat:300,400,500,700&display=swap"
             rel="stylesheet"
     />
-    <link rel="stylesheet" href="./styles.css" />
+
+
+    <link rel="stylesheet" href="./css/chatstyles.css" />
+    <link rel="stylesheet" type="text/css" href="./css/additions.css" />
+    <link rel="stylesheet" type="text/css" href="./css/demo.css" />
+    <link rel="stylesheet" type="text/css" href="./css/ballstyles.css" />
+    <link rel="stylesheet" type="text/css" href="./css/main.css" />
+    <link rel="stylesheet" type="text/css" href="./css/piechart.css" />
+    <link href='http://fonts.googleapis.com/css?family=Open+Sans+Condensed:700,300,300italic' rel='stylesheet' type='text/css'>
+    <script type="text/javascript" src="./scripts/modernizr.custom.79639.js"></script>
+    <script type="text/javascript" src="./scripts/piechart.js"></script>
+    <script type="text/javascript" src="./scripts/additions.js"></script>
+    <script type="text/javascript" src="./scripts/ballController.js"></script>
+    <script type="text/javascript" src="./scripts/objectController.js"></script>
+    <script src="https://cdn.amcharts.com/lib/4/charts.js"></script>
+    <script src="https://cdn.amcharts.com/lib/4/themes/animated.js"></script>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"> onload="loadjquery();"</script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/2.3.0/socket.io.js"></script>
 </head>
 <body>
+<script src="./scripts/index.js"></script>
 <div class="container">
-    <header class="header">
-     Flat Video Call
-    </header>
     <div class="content-container">
         <div class="active-users-panel" id="active-user-container">
             <h3 class="panel-title">Active Users:</h3>
@@ -25,13 +39,172 @@
             <h2 class="talk-info" id="talking-with-info">
                 Select active user on the left menu.
             </h2>
+
             <div class="video-container">
-                <video autoplay class="remote-video" id="remote-video"></video>
-                <video autoplay muted class="local-video" id="local-video"></video>
+                <div class="remvideodiv">
+                    <div class="dropdown">
+                        <button onclick="clickDropdown()" class="dropbtn">Summon</button>
+                        <div id="myDropdown" class="dropdown-content">
+                            <a onclick="toggleBall()">Ball</a>
+                            <a onclick="toggleChart()">Chart</a>
+                            <a onclick="toggleObject()">Object</a>
+                        </div>
+                    </div>
+                    <video autoplay class="remote-video" id="remote-video"></video>
+                    <div id="chartdiv"></div>
+                    <div id="ballWrapper" onclick="kickBall();" style="display: none;">
+                        <div id="ball"></div>
+                        <div id="ballShadow"></div>
+                    </div>
+
+                    <video autoplay muted class="local-video" id="local-video"></video>
+                </div>
+
+                </div>
+
             </div>
         </div>
+        <div id="objContainer" style="display: none;"></div>
     </div>
-</div>
-<script src="./scripts/index.js"></script>
+
+
+
+
+
+    <!--        <div id = "controlButtons">-->
+    <!--            <button class="hidebtn" onclick="hideBall();">Hide</button>-->
+    <!--            <button class="showbtn" onclick="showBall();" > Show </button>-->
+    <!--            <button class="tossbtn" onclick="kickBall();">Toss</button>-->
+    <!--        </div>-->
+
+
+<script type="module">
+
+    import * as THREE from './build/three.module.js';
+
+    import Stats from './examples/jsm/libs/stats.module.js';
+
+    import { OrbitControls } from './examples/jsm/controls/OrbitControls.js';
+    import { GLTFLoader } from './examples/jsm/loaders/GLTFLoader.js';
+    import { DRACOLoader } from './examples/jsm/loaders/DRACOLoader.js';
+
+    var scene, camera, dirLight,dirLight2, stats;
+    var renderer, mixer, controls;
+
+    var clock = new THREE.Clock();
+    var container = document.getElementById( 'objContainer' );
+
+     stats = new Stats();
+     //container.appendChild( stats.dom );
+
+    renderer = new THREE.WebGLRenderer({
+        alpha: true
+    });
+
+    const {width, height} = document.querySelector('.video-chat-container').getBoundingClientRect();
+
+    renderer.domElement.style = 'outline: none;';
+
+    renderer.setPixelRatio( window.devicePixelRatio );
+    renderer.setSize( width, height );
+    renderer.setClearColor( 0xffffff, 0 );
+    renderer.setClearAlpha( 0.1 );
+    renderer.outputEncoding = THREE.sRGBEncoding;
+    container.appendChild( renderer.domElement );
+
+    scene = new THREE.Scene();
+    //scene.background = new THREE.Color( 0xff0000 );
+    scene.background=null;
+
+    camera = new THREE.PerspectiveCamera( 40, width / height, 1, 100 );
+    camera.position.set( 5, 2, 8 );
+
+    controls = new OrbitControls( camera, renderer.domElement );
+    controls.target.set( 0, 0.5, 0 );
+    controls.update();
+    controls.enablePan = false;
+    controls.enableDamping = true;
+
+    scene.add( new THREE.HemisphereLight( 0xffffff, 0x000000, 0.4 ) );
+
+
+    dirLight = new THREE.DirectionalLight( 0xffffff, 1 );
+    dirLight.position.set( 5, 2, 8 );
+    dirLight2 = new THREE.DirectionalLight( 0xffffff, 1 );
+    dirLight2.position.set( 15, 20, 18 );
+    scene.add( dirLight2 );
+
+    // envmap
+    var path = 'textures/cube/Park2/';
+    var format = '.jpg';
+    var envMap = new THREE.CubeTextureLoader().load( [
+        path + 'posx' + format, path + 'negx' + format,
+        path + 'posy' + format, path + 'negy' + format,
+        path + 'posz' + format, path + 'negz' + format
+    ] );
+
+    var dracoLoader = new DRACOLoader();
+    dracoLoader.setDecoderPath( './examples/js/libs/draco/gltf/' );
+
+    var loader = new GLTFLoader();
+    loader.setDRACOLoader( dracoLoader );
+    loader.load( './examples/models/gltf/LittlestTokyo.glb', function ( gltf ) {
+
+        var model = gltf.scene;
+        model.position.set( 1, 1, 0 );
+        model.scale.set( 0.01, 0.01, 0.01 );
+        model.traverse( function ( child ) {
+
+            if ( child.isMesh ) child.material.envMap = envMap;
+
+        } );
+
+        scene.add( model );
+
+        mixer = new THREE.AnimationMixer( model );
+        mixer.clipAction( gltf.animations[ 0 ] ).play();
+
+        animate();
+
+    }, undefined, function ( e ) {
+
+        console.error( e );
+
+    } );
+
+
+    window.onresize = function () {
+
+        camera.aspect = width / height;
+        camera.updateProjectionMatrix();
+
+        renderer.setSize( width, height );
+
+    };
+
+
+    function animate() {
+
+        requestAnimationFrame( animate );
+
+        var delta = clock.getDelta();
+
+        mixer.update( delta );
+
+        controls.update();
+
+        //stats.update();
+
+        renderer.render( scene, camera );
+
+    }
+
+
+</script>
+
+
+
+
+
 </body>
 </html>
